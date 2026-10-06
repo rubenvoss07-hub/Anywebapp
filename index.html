@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Anywebapp</title>
+
+  <!-- Home screen look (iPad / iPhone) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Anywebapp">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111111">
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      background: #111;
+      color: #eee;
+      font: 17px -apple-system, system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    form { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 12px; }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 18px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      background: #1c1c1c;
+      color: #fff;
+    }
+    button {
+      padding: 14px;
+      font-size: 18px;
+      border: 0;
+      border-radius: 12px;
+      background: #0a84ff;
+      color: #fff;
+    }
+    button.ghost { background: transparent; color: #888; font-size: 15px; }
+    #status { text-align: center; color: #888; min-height: 1.2em; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <form id="form">
+    <input id="url" type="url" inputmode="url" autocomplete="off" autocapitalize="off"
+           spellcheck="false" placeholder="https://example.com" required>
+    <button type="submit">Open</button>
+    <div id="status"></div>
+    <button id="cancel" class="ghost" type="button" hidden>Stop, I want to change the link</button>
+  </form>
+
+  <script>
+    const KEY = 'anywebapp-url';
+    const form = document.getElementById('form');
+    const input = document.getElementById('url');
+    const status = document.getElementById('status');
+    const cancel = document.getElementById('cancel');
+    let timer;
+
+    function store(fn) { try { return fn(); } catch (e) { return null; } }
+
+    function normalize(v) {
+      v = v.trim();
+      if (!/^[a-z][a-z0-9+.-]*:/i.test(v)) v = 'https://' + v;
+      return v;
+    }
+
+    function go(url) { location.href = url; }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      clearTimeout(timer);
+      const url = normalize(input.value);
+      store(() => localStorage.setItem(KEY, url));
+      go(url);
+    });
+
+    cancel.addEventListener('click', () => {
+      clearTimeout(timer);
+      cancel.hidden = true;
+      status.textContent = '';
+      input.focus();
+    });
+
+    // ?url=... in the address overrides the saved link
+    const fromQuery = new URLSearchParams(location.search).get('url');
+    const saved = fromQuery ? normalize(fromQuery) : store(() => localStorage.getItem(KEY));
+
+    if (saved) {
+      input.value = saved;
+      if (fromQuery) store(() => localStorage.setItem(KEY, saved));
+      status.textContent = 'Opening…';
+      cancel.hidden = false;
+      timer = setTimeout(() => go(saved), 1200);
+    } else {
+      input.focus();
+    }
+  </script>
+</body>
+</html>
